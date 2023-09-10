@@ -1,0 +1,29 @@
+{
+	"manifest_version": 3,
+	"name": "MyWellness Exporter",
+	"version": "1.0",
+
+	"description": "Exports MyWellness activities to TCX.",
+
+	"icons": {
+		"48": "icons/48.png"
+	},
+
+	"host_permissions": ["*://*.mywellness.com/*"],
+
+	"permissions": [
+		"downloads"
+	],
+
+	"content_scripts": [
+		{
+			"matches": ["*://www.mywellness.com/*/training/performedexercisedetail/*"],
+			"js": ["mywellness.js"]
+		}
+	],
+
+	"background": {
+		"scripts": ["export.js"]
+	}
+
+}
