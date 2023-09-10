@@ -6,7 +6,7 @@ async function handleMessage(message, sender, sendResponse) {
 			"https://" + message.details.apiHost + "/Training/CardioLog/" + message.details.activityAnalyticsId
 				+ "/Details?facilityId=" + message.details.facilityId
 				+ "&_c=en-GB&AppId=" + message.details.appId
-				+ "&token=" + message.details.token + "&_=1694261125737"
+				+ "&token=" + message.details.token + "&_=" + Math.round(Date.now() / 1000)
 			);
 		const analytics = await response.json();
 		const tcx = buildTcxData(analytics, message.details.calories, message.details.activityTime);
