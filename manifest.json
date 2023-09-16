@@ -17,7 +17,10 @@
 
 	"content_scripts": [
 		{
-			"matches": ["*://www.mywellness.com/*/training/performedexercisedetail/*"],
+			"matches": [
+				"*://www.mywellness.com/*/training/performedexercisedetail/*",
+				"*://www.mywellness.com/*/Training/PerformedExerciseDetail/*"
+			],
 			"js": ["mywellness.js"]
 		}
 	],

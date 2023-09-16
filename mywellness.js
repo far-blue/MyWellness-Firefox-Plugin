@@ -6,6 +6,16 @@ function requestExportActivity(event) {
 
 	event.target.parentElement.style.display = "none";
 
+	let calorieTotalText;
+	let calorieTotal = 0;
+	for (let i = 1; i < 5; i++) {
+		calorieTotalText = document.querySelector("table.exercise-table tr:nth-child(" + i + ") td:nth-child(2)").textContent;
+		if (calorieTotalText.includes("kcal")) {
+			calorieTotal = calorieTotalText.replace(" kcal", "");
+			break;
+		}
+	}
+
 	browser.runtime.sendMessage({
 		action: "export",
 		details: {
@@ -15,7 +25,7 @@ function requestExportActivity(event) {
 			token: window.wrappedJSObject.EU.currentUser.token,
 			appId: window.wrappedJSObject.EU.config.API_APP_ID,
 			apiHost: window.wrappedJSObject.EU.config.API_HOST,
-			calories: document.querySelector("table.exercise-table tr:nth-child(3) td:nth-child(2)").textContent.replace(" kcal", "")
+			calories: calorieTotal
 		}
 	});
 }
@@ -55,7 +65,7 @@ function installExportButton() {
 	exportForm.addEventListener("submit", requestExportActivity);
 
 	exportButton.addEventListener("click", (event) => exportDateFormWrapper.style.display = "block");
-
+	console.log("Extension installed");
 }
 
 installExportButton();

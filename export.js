@@ -23,6 +23,11 @@ function buildTcxData(activity, calories, activityTime) {
 
 	const sportMapping = {
 		'UprightBike': 'Biking',
+		'Vario': 'Running',
+		'Synchro': 'Running',
+		'ReclineBike': 'Biking',
+		'Treadmill': 'Running',
+		'Climb': 'Other'
 	};
 
 	const startDateParts = activity.data.date.split('/');
@@ -51,7 +56,8 @@ function buildTcxData(activity, calories, activityTime) {
 	let dataTypeMap = {
 		power: null,
 		distance: null,
-		cadence: null
+		cadence: null,
+		floors: null
 	};
 
 	activity.data.analitics.descriptor.forEach ((dataSetType) => {
@@ -65,7 +71,12 @@ function buildTcxData(activity, calories, activityTime) {
 				break;
 
 			case 'Rpm':
+			case 'Spm':
 				dataTypeMap.cadence = dataSetType.i;
+				break;
+
+			case 'Floors':
+				dataTypeMap.floors = dataSetType.i;
 				break;
 		}
 	});
@@ -89,9 +100,32 @@ function buildTcxData(activity, calories, activityTime) {
 	const startingTimestamp = startTime.getTime();
 	const mutableDate = new Date();
 	let activitySamples = [];
+	let previousDistanceSample = { distance: 0, seconds: 0};
+	let nextDistanceSample = { distance: 0, seconds: 0};
+	let distanceSecondIncrement = false;
 
 	for (let t = 1; t < durationSeconds + 1; t++) {
 		mutableDate.setTime(startingTimestamp + (t * 1000));
+
+		let distance;
+		if (dataTypeMap.distance !== null) {
+			if (nextDistanceSample.seconds <= t) {
+				distanceSecondIncrement = 0;
+				previousDistanceSample = nextDistanceSample;
+				for (let i = t; i < t + 10; i++) {
+					if (activitySampleLookup[i] && activitySampleLookup[i][dataTypeMap.distance] > previousDistanceSample.distance) {
+						nextDistanceSample = { distance: activitySampleLookup[i][dataTypeMap.distance], seconds: i};
+						distanceSecondIncrement = (nextDistanceSample.distance - previousDistanceSample.distance) / (nextDistanceSample.seconds - previousDistanceSample.seconds);
+						break;
+					}
+				}
+				if (distanceSecondIncrement == 0) {
+					nextDistanceSample.seconds = t + 10;
+				}
+			}
+
+			distance = previousDistanceSample.distance + (distanceSecondIncrement * (t - previousDistanceSample.seconds));
+		}
 
 		let activityData;
 		for (let i = 0; i < 30; i++) {
@@ -99,26 +133,42 @@ function buildTcxData(activity, calories, activityTime) {
 				activityData = activitySampleLookup[t - i]
 				break;
 			}
+			if (activitySampleLookup[t + i]) {
+				activityData = activitySampleLookup[t + i]
+				break;
+			}
 		}
 
 		let hr;
 		for (let i = 0; i < 30; i++) {
-			if (hrSampleLookup[t - i]) {
+			if (hrSampleLookup[t - i] && hrSampleLookup[t - i] > 0) {
 				hr = hrSampleLookup[t - i]
+				break;
+			}
+			if (hrSampleLookup[t + i] && hrSampleLookup[t + i] > 0) {
+				hr = hrSampleLookup[t + i]
 				break;
 			}
 		}
 
 		let result = '<Time>' + mutableDate.toISOString() + '</Time>';
-		if (dataTypeMap.distance !== null) {
-			result += '<DistanceMeters>' + activityData[dataTypeMap.distance] + '</DistanceMeters>';
-		}
-		result +='<HeartRateBpm><Value>' + hr + '</Value></HeartRateBpm>';
 
-		if (dataTypeMap.cadence !== null) {
+		if (activityData && dataTypeMap.floors !== null) {
+			result += '<AltitudeMeters>' + (activityData[dataTypeMap.floors] * 3.5) + '</AltitudeMeters>';
+		}
+
+		if (dataTypeMap.distance !== null) {
+			result += '<DistanceMeters>' + distance + '</DistanceMeters>';
+		}
+
+		if (hr !== null) {
+			result +='<HeartRateBpm><Value>' + hr + '</Value></HeartRateBpm>';
+		}
+
+		if (activityData && dataTypeMap.cadence !== null) {
 			result += '<Cadence>' + activityData[dataTypeMap.cadence] + '</Cadence>';
 		}
-		if (dataTypeMap.power !== null) {
+		if (activityData && dataTypeMap.power !== null) {
 			result += '<Extensions><TPX xmlns="http://www.garmin.com/xmlschemas/ActivityExtension/v2"><Watts>' + activityData[dataTypeMap.power] + '</Watts></TPX></Extensions>';
 		}
 
